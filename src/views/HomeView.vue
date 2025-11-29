@@ -1,9 +1,38 @@
 <template>
   <div class="products-page">
     <a-card title="Mahsulotlar ro'yxati" :bordered="false">
+      <!-- Category Filter -->
+      <div style="margin-bottom: 16px;">
+        <a-space>
+          <span style="font-weight: 500;">Kategoriya bo'yicha filter:</span>
+          <a-select
+            v-model:value="selectedCategory"
+            placeholder="Barcha kategoriyalar"
+            style="width: 250px;"
+            @change="handleCategoryChange"
+            allow-clear
+          >
+            <a-select-option value="">Barchasi</a-select-option>
+            <a-select-option 
+              v-for="cat in categories" 
+              :key="cat.uz" 
+              :value="cat.uz"
+            >
+              {{ cat.uz }} / {{ cat.ru }}
+            </a-select-option>
+          </a-select>
+          <a-tag v-if="selectedCategory" color="blue">
+            {{ filteredProducts.length }} ta mahsulot
+          </a-tag>
+          <a-tag v-else color="default">
+            {{ products.length }} ta mahsulot
+          </a-tag>
+        </a-space>
+      </div>
+
       <a-table 
         :columns="columns" 
-        :data-source="products" 
+        :data-source="filteredProducts" 
         :loading="loading"
         :pagination="{ pageSize: 10 }"
         row-key="id"
@@ -17,6 +46,10 @@
               :preview="true"
             />
             <span v-else>-</span>
+          </template>
+
+          <template v-if="column.key === 'category'">
+            <a-tag color="blue">{{ record.category_uz }}</a-tag>
           </template>
 
           <template v-if="column.key === 'price'">
@@ -88,6 +121,22 @@
         :label-col="{ span: 6 }"
         :wrapper-col="{ span: 18 }"
       >
+        <a-form-item label="Kategoriya">
+          <a-select
+            v-model:value="editForm.category_uz"
+            placeholder="Kategoriyani tanlang"
+            style="width: 100%;"
+          >
+            <a-select-option 
+              v-for="cat in categories" 
+              :key="cat.uz" 
+              :value="cat.uz"
+            >
+              {{ cat.uz }} / {{ cat.ru }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+
         <a-form-item label="Nomi (UZ)">
           <a-input v-model:value="editForm.name" />
         </a-form-item>
@@ -185,14 +234,34 @@
 import { ref, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { EditOutlined, DeleteOutlined, LinkOutlined, UploadOutlined, EyeOutlined } from '@ant-design/icons-vue';
+import { supabase } from '@/Supabase/supabase';
 
-import {supabase} from "@/Supabase/supabase"
+// Kategoriyalar ro'yxati (form bilan bir xil)
+const categories = [
+  { uz: 'Texnika', ru: 'Техника' },
+  { uz: 'Telefon', ru: 'Телефон' },
+  { uz: 'Kompyuter', ru: 'Компьютер' },
+  { uz: 'Planshet', ru: 'Планшет' },
+  { uz: 'Aksessuarlar', ru: 'Аксессуары' },
+  { uz: 'Maishiy texnika', ru: 'Бытовая техника' },
+  { uz: 'Audio texnika', ru: 'Аудио техника' },
+  { uz: 'Kiyim', ru: 'Одежда' },
+  { uz: 'Oyoq kiyim', ru: 'Обувь' },
+  { uz: 'Sport buyumlari', ru: 'Спорттовары' },
+  { uz: 'Kitoblar', ru: 'Книги' },
+  { uz: 'Boshqalar', ru: 'Прочее' }
+];
 
 const columns = [
   {
     title: 'Rasm',
     key: 'image',
     width: 100,
+  },
+  {
+    title: 'Kategoriya',
+    key: 'category',
+    width: 120,
   },
   {
     title: 'Nomi',
@@ -227,6 +296,8 @@ const columns = [
 ];
 
 const products = ref([]);
+const selectedCategory = ref('');
+const filteredProducts = ref([]);
 const loading = ref(false);
 const editModalVisible = ref(false);
 const modalLoading = ref(false);
@@ -246,12 +317,26 @@ const fetchProducts = async () => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    console.log(data)
+    
     products.value = data;
+    filteredProducts.value = data; // Boshlang'ich holatda barchasi
   } catch (error) {
     message.error('Ma\'lumotlarni yuklashda xatolik: ' + error.message);
   } finally {
     loading.value = false;
+  }
+};
+
+// Handle category filter change
+const handleCategoryChange = (value) => {
+  if (!value || value === '') {
+    // Barchasi tanlansa
+    filteredProducts.value = products.value;
+  } else {
+    // Kategoriya bo'yicha filter
+    filteredProducts.value = products.value.filter(
+      product => product.category_uz === value
+    );
   }
 };
 
@@ -269,6 +354,8 @@ const handleEdit = (record) => {
   currentProductId.value = record.id;
   oldImagePath.value = record.image;
   editForm.value = {
+    category_uz: record.category_uz,
+    category_ru: record.category_ru,
     name: record.name,
     name_ru: record.name_ru,
     description: record.description,
@@ -345,13 +432,7 @@ const handleUpdate = async () => {
       if (oldImagePath.value) {
         try {
           const oldFileName = oldImagePath.value.split('/').pop();
-          const { error: deleteError } = await supabase.storage
-            .from('images')
-            .remove([oldFileName]);
-          
-          if (deleteError) {
-            console.error('Eski rasmni o\'chirishda xatolik:', deleteError);
-          }
+          await supabase.storage.from('images').remove([oldFileName]);
         } catch (err) {
           console.error('Eski rasm o\'chirilmadi:', err);
         }
@@ -359,7 +440,11 @@ const handleUpdate = async () => {
     }
 
     // Prepare update data
+    const selectedCat = categories.find(cat => cat.uz === editForm.value.category_uz);
+    
     const updateData = {
+      category_uz: selectedCat?.uz,
+      category_ru: selectedCat?.ru,
       name: editForm.value.name,
       name_ru: editForm.value.name_ru,
       description: editForm.value.description,
@@ -385,6 +470,7 @@ const handleUpdate = async () => {
     editModalVisible.value = false;
     newImage.value = null;
     newImagePreview.value = null;
+    selectedCategory.value = '';
     await fetchProducts();
   } catch (error) {
     console.error('Update error:', error);
@@ -407,16 +493,10 @@ const handleDelete = async (id) => {
     const product = products.value.find(p => p.id === id);
     
     // Delete image from storage if exists
-    if (product.image) {
+    if (product && product.image) {
       try {
         const fileName = product.image.split('/').pop();
-        const { error: deleteError } = await supabase.storage
-          .from('images')
-          .remove([fileName]);
-        
-        if (deleteError) {
-          console.error('Storage dan o\'chirishda xatolik:', deleteError);
-        }
+        await supabase.storage.from('images').remove([fileName]);
       } catch (err) {
         console.error('Rasm o\'chirilmadi:', err);
       }
@@ -431,6 +511,7 @@ const handleDelete = async (id) => {
     if (error) throw error;
 
     message.success('Mahsulot muvaffaqiyatli o\'chirildi!');
+    selectedCategory.value = '';
     await fetchProducts();
   } catch (error) {
     message.error('O\'chirishda xatolik: ' + error.message);

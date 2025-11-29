@@ -9,6 +9,29 @@
         @finish="onFinish"
         @finishFailed="onFinishFailed"
       >
+        <!-- Category Selection -->
+        <a-form-item
+          label="Kategoriya"
+          name="category"
+          has-feedback
+        >
+          <a-select
+            v-model:value="formState.category"
+            placeholder="Kategoriyani tanlang"
+            size="large"
+            show-search
+            :filter-option="filterOption"
+          >
+            <a-select-option 
+              v-for="cat in categories" 
+              :key="cat.uz" 
+              :value="cat.uz"
+            >
+              {{ cat.uz }} / {{ cat.ru }}
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+
         <!-- Product Name (Uzbek) -->
         <a-form-item
           label="Mahsulot Nomi (O'zbekcha)"
@@ -176,6 +199,22 @@ import { message } from 'ant-design-vue';
 import { PlusOutlined } from '@ant-design/icons-vue';
 import { supabase } from '@/Supabase/supabase';
 
+// Kategoriyalar ro'yxati (local)
+const categories = [
+  { uz: 'Texnika', ru: 'Техника' },
+  { uz: 'Telefon', ru: 'Телефон' },
+  { uz: 'Kompyuter', ru: 'Компьютер' },
+  { uz: 'Planshet', ru: 'Планшет' },
+  { uz: 'Aksessuarlar', ru: 'Аксессуары' },
+  { uz: 'Maishiy texnika', ru: 'Бытовая техника' },
+  { uz: 'Audio texnika', ru: 'Аудио техника' },
+  { uz: 'Kiyim', ru: 'Одежда' },
+  { uz: 'Oyoq kiyim', ru: 'Обувь' },
+  { uz: 'Sport buyumlari', ru: 'Спорттовары' },
+  { uz: 'Kitoblar', ru: 'Книги' },
+  { uz: 'Boshqalar', ru: 'Прочее' }
+];
+
 const formRef = ref();
 const loading = ref(false);
 const fileList = ref([]);
@@ -184,6 +223,7 @@ const previewImage = ref('');
 
 // Form state
 const formState = reactive({
+  category: undefined,
   name: '',
   nameRu: '',
   description: '',
@@ -196,6 +236,9 @@ const formState = reactive({
 
 // Validation rules
 const rules = {
+  category: [
+    { required: true, message: 'Kategoriyani tanlang', trigger: 'change' }
+  ],
   name: [
     { required: true, message: 'Mahsulot nomini o\'zbekcha kiriting', trigger: 'blur' },
     { min: 3, message: 'Nom kamida 3 ta belgidan iborat bo\'lishi kerak', trigger: 'blur' },
@@ -255,6 +298,11 @@ const rules = {
       trigger: 'change'
     }
   ]
+};
+
+// Filter option for select search
+const filterOption = (input, option) => {
+  return option.children[0].children.toLowerCase().includes(input.toLowerCase());
 };
 
 // Calculate discount percentage
@@ -339,8 +387,13 @@ const onFinish = async (values) => {
       imageUrl = publicUrl;
     }
 
+    // Find selected category
+    const selectedCategory = categories.find(cat => cat.uz === formState.category);
+
     // Insert product data
     const productData = {
+      category_uz: selectedCategory.uz,
+      category_ru: selectedCategory.ru,
       name: values.name,
       name_ru: values.nameRu,
       description: values.description,
@@ -377,13 +430,12 @@ const handleReset = () => {
   formRef.value.resetFields();
   fileList.value = [];
   formState.image = null;
+  formState.category = undefined;
   message.info('Forma tozalandi');
 };
 </script>
 
 <style scoped>
-
-
 :deep(.ant-upload-picture-card-wrapper) {
   display: inline-block;
 }
