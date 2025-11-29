@@ -4,19 +4,21 @@
       <div class="logo" />
       <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline">
         <a-menu-item key="1">
-          <router-link to="/">
+          <template #icon>
             <UserOutlined />
-            <span>nav 1</span>
-          </router-link>
+          </template>
+          <router-link to="/">nav 1</router-link>
         </a-menu-item>
         <a-menu-item key="2">
-          <router-link to="/upload">
+          <template #icon>
             <VideoCameraOutlined />
-            <span>nav 2</span>
-          </router-link>
+          </template>
+          <router-link to="/upload">nav 2</router-link>
         </a-menu-item>
         <a-menu-item key="3">
-          <upload-outlined />
+          <template #icon>
+            <UploadOutlined />
+          </template>
           <span>nav 3</span>
         </a-menu-item>
       </a-menu>
@@ -33,6 +35,7 @@
     </a-layout>
   </a-layout>
 </template>
+
 <script setup>
 import { ref } from 'vue';
 import {
