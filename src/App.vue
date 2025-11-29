@@ -5,21 +5,15 @@
       <a-menu v-model:selectedKeys="selectedKeys" theme="dark" mode="inline">
         <a-menu-item key="1">
           <template #icon>
-            <UserOutlined />
+            <ShoppingOutlined />
           </template>
-          <router-link to="/">nav 1</router-link>
+          <router-link to="/">Tovarlar</router-link>
         </a-menu-item>
         <a-menu-item key="2">
           <template #icon>
-            <VideoCameraOutlined />
-          </template>
-          <router-link to="/upload">nav 2</router-link>
-        </a-menu-item>
-        <a-menu-item key="3">
-          <template #icon>
             <UploadOutlined />
           </template>
-          <span>nav 3</span>
+          <router-link to="/upload">Yuklash</router-link>
         </a-menu-item>
       </a-menu>
     </a-layout-sider>
@@ -39,11 +33,10 @@
 <script setup>
 import { ref } from 'vue';
 import {
+  ShoppingOutlined,
   UploadOutlined,
   MenuUnfoldOutlined,
-  MenuFoldOutlined,
-  UserOutlined,
-  VideoCameraOutlined
+  MenuFoldOutlined
 } from '@ant-design/icons-vue'
 
 const selectedKeys = ref(['1']);
