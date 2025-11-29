@@ -382,11 +382,7 @@ const handleReset = () => {
 </script>
 
 <style scoped>
-.product-form-container {
-  padding: 24px;
-  background: #f0f2f5;
-  min-height: 100vh;
-}
+
 
 :deep(.ant-upload-picture-card-wrapper) {
   display: inline-block;
