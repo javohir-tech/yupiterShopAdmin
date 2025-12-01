@@ -103,6 +103,24 @@
           </a-typography-text>
         </a-form-item>
 
+        <!-- Slide uchun rasmalar  -->
+        <a-form-item label="Slide uchun rasmlar" name="slideImages">
+          <a-upload v-model:file-list="slidesImageFiles" name="slidesImages" list-type="picture-card"
+            class="product-image-uploader" :before-upload="beforeUpload" :max-count="5" multiple
+            @change="handleSlideImagesChange" @preview="handlePreview">
+            <div v-if="slidesImageFiles.length < 5">
+              <PlusOutlined />
+              <div style="margin-top: 8px">Rasm yuklash</div>
+            </div>
+          </a-upload>
+          <a-typography-text type="secondary" style="font-size: 12px">
+            Qo'llab-quvvatlanadigan formatlar: JPG, PNG, GIF (Har biri maksimal 5MB)
+          </a-typography-text>
+        </a-form-item>
+        <div v-for="(file, index) in slidesImageFiles" :key="index" style="margin: 10px;">
+          <a-input v-model:value="file.caption" :placeholder="`${index + 1}-rasm uchun nom kiriting`" />
+        </div>
+
         <!-- Preview Modal -->
         <a-modal :open="previewVisible" :footer="null" @cancel="handleCancelPreview">
           <img :src="previewImage" style="width: 100%" alt="Preview" />
@@ -165,6 +183,7 @@ const formRef = ref();
 const loading = ref(false);
 const mainImageFile = ref([]);
 const additionalImageFiles = ref([]);
+const slidesImageFiles = ref([])
 const previewVisible = ref(false);
 const previewImage = ref('');
 
@@ -189,7 +208,8 @@ const formState = reactive({
   stock: 0,
   link: '',
   mainImage: null,
-  additionalImages: []
+  additionalImages: [],
+  slidesImages: [],
 });
 
 // Validation rules
@@ -306,6 +326,15 @@ const handleAdditionalImagesChange = ({ fileList: newFileList }) => {
   formState.additionalImages = newFileList.map(file => file.originFileObj);
 };
 
+const handleSlideImagesChange = ({ fileList: newFileList }) => {
+  slidesImageFiles.value = newFileList.map(file => ({
+    ...file,
+    caption: file.caption || ''
+  }));
+
+  formState.slidesImages = slidesImageFiles.value;
+};
+
 const handlePreview = async (file) => {
   if (!file.url && !file.preview) {
     file.preview = await getBase64(file.originFileObj);
@@ -327,22 +356,19 @@ const getBase64 = (file) => {
   });
 };
 
-/**
- * Supabase Storage ga rasm yuklash funksiyasi
- * @param {File} file - Yuklanadigan fayl
- * @param {string} productId - Mahsulot ID si
- * @param {string} imageType - 'main' yoki 'additional'
- * @param {number} index - Qo'shimcha rasm uchun index (0, 1, 2...)
- * @returns {Promise<string>} - Rasm URL manzili
- */
 const uploadImageToSupabase = async (file, productId, imageType = 'main', index = 0) => {
   try {
     // Fayl nomini yaratish
     const fileExt = file.name.split('.').pop();
     const timestamp = Date.now();
-    const fileName = imageType === 'main' 
-      ? `main_${timestamp}.${fileExt}` 
-      : `additional_${index + 1}_${timestamp}.${fileExt}`;
+    let fileName
+    if (imageType === 'main') {
+      fileName = `main_${timestamp}.${fileExt}`
+    } else if (imageType === `additional`) {
+      fileName = `additional_${index + 1}_${timestamp}.${fileExt}`
+    } else if (imageType === 'slidesImage') {
+      fileName = `slideimage_${index + 1}_${timestamp}.${fileExt}`
+    }
 
     // Storage path: images/{productId}/{fileName}
     const filePath = `${productId}/${fileName}`;
@@ -373,14 +399,10 @@ const uploadImageToSupabase = async (file, productId, imageType = 'main', index 
   }
 };
 
-/**
- * Mahsulotning barcha rasmlarini o'chirish
- * @param {string} productId - Mahsulot ID si
- */
 const deleteAllProductImages = async (productId) => {
   try {
     const folderPath = `images/products/${productId}`;
-    
+
     // Papkadagi barcha fayllarni ro'yxatga olish
     const { data: filesList, error: listError } = await supabase.storage
       .from('product-images')
@@ -394,7 +416,7 @@ const deleteAllProductImages = async (productId) => {
     if (filesList && filesList.length > 0) {
       // Barcha fayllarni o'chirish
       const filePaths = filesList.map(file => `${folderPath}/${file.name}`);
-      
+
       const { error: deleteError } = await supabase.storage
         .from('product-images')
         .remove(filePaths);
@@ -410,10 +432,6 @@ const deleteAllProductImages = async (productId) => {
   }
 };
 
-/**
- * Mahsulotni va uning rasmlarini to'liq o'chirish (rollback uchun)
- * @param {string} productId - Mahsulot ID si
- */
 const rollbackProduct = async (productId) => {
   try {
     // 1. Rasmlarni o'chirish
@@ -453,7 +471,7 @@ const onFinish = async (values) => {
 
   try {
     // Show upload progress modal
-    const totalImages = 1 + formState.additionalImages.length;
+    const totalImages = 1 + formState.additionalImages.length + formState.slidesImages.length;
     uploadProgress.visible = true;
     uploadProgress.total = totalImages;
     uploadProgress.current = 0;
@@ -532,6 +550,33 @@ const onFinish = async (values) => {
       }
     }
 
+    // 4. slides imagelarni yuklash
+    if (formState.slidesImages.length > 0) {
+      for (let i = 0; i < formState.slidesImages.length; i++) {
+        const fileItem = formState.slidesImages[i]
+        const imageFile = fileItem.originFileObj || fileItem;
+        const imageUrl = await uploadImageToSupabase(imageFile, productId, 'slidesImage', i);
+        const caption = fileItem.caption || '';
+
+        // product_slides jadvaliga saqlash
+        const { error: imageError } = await supabase
+          .from('product_slides')
+          .insert({
+            product_id: productId,
+            image_url: imageUrl,
+            caption: caption, 
+            display_order: i + 1
+          });
+
+        if (imageError) {
+          throw new Error('Qo\'shimcha rasmni saqlashda xatolik: ' + imageError.message);
+        }
+
+        uploadProgress.current++;
+        uploadProgress.percent = Math.round((uploadProgress.current / uploadProgress.total) * 100);
+      }
+    }
+
     uploadProgress.status = 'success';
 
     setTimeout(() => {
@@ -565,6 +610,7 @@ const handleReset = () => {
   formRef.value.resetFields();
   mainImageFile.value = [];
   additionalImageFiles.value = [];
+  slidesImageFiles.value = []
   formState.mainImage = null;
   formState.additionalImages = [];
   formState.category = undefined;
