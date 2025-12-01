@@ -1,193 +1,83 @@
 <template>
   <div class="product-form-container">
     <a-card title="Yangi Mahsulot Qo'shish" :bordered="true" style="max-width: 800px; margin: 0 auto;">
-      <a-form
-        ref="formRef"
-        :model="formState"
-        :rules="rules"
-        layout="vertical"
-        @finish="onFinish"
-        @finishFailed="onFinishFailed"
-      >
+      <a-form ref="formRef" :model="formState" :rules="rules" layout="vertical" @finish="onFinish"
+        @finishFailed="onFinishFailed">
         <!-- Category Selection -->
-        <a-form-item
-          label="Kategoriya"
-          name="category"
-          has-feedback
-        >
-          <a-select
-            v-model:value="formState.category"
-            placeholder="Kategoriyani tanlang"
-            size="large"
-            show-search
-            :filter-option="filterOption"
-          >
-            <a-select-option 
-              v-for="cat in categories" 
-              :key="cat.uz" 
-              :value="cat.uz"
-            >
+        <a-form-item label="Kategoriya" name="category" has-feedback>
+          <a-select v-model:value="formState.category" placeholder="Kategoriyani tanlang" size="large" show-search
+            :filter-option="filterOption">
+            <a-select-option v-for="cat in categories" :key="cat.uz" :value="cat.uz">
               {{ cat.uz }} / {{ cat.ru }}
             </a-select-option>
           </a-select>
         </a-form-item>
 
         <!-- Product Name (Uzbek) -->
-        <a-form-item
-          label="Mahsulot Nomi (O'zbekcha)"
-          name="name"
-          has-feedback
-        >
-          <a-input
-            v-model:value="formState.name"
-            placeholder="Mahsulot nomini o'zbekcha kiriting"
-            size="large"
-          />
+        <a-form-item label="Mahsulot Nomi (O'zbekcha)" name="name" has-feedback>
+          <a-input v-model:value="formState.name" placeholder="Mahsulot nomini o'zbekcha kiriting" size="large" />
         </a-form-item>
 
         <!-- Product Name (Russian) -->
-        <a-form-item
-          label="Mahsulot Nomi (Ruscha)"
-          name="nameRu"
-          has-feedback
-        >
-          <a-input
-            v-model:value="formState.nameRu"
-            placeholder="Введите название продукта"
-            size="large"
-          />
+        <a-form-item label="Mahsulot Nomi (Ruscha)" name="nameRu" has-feedback>
+          <a-input v-model:value="formState.nameRu" placeholder="Введите название продукта" size="large" />
         </a-form-item>
 
         <!-- Description (Uzbek) -->
-        <a-form-item
-          label="Ta'rif (O'zbekcha)"
-          name="description"
-          has-feedback
-        >
-          <a-textarea
-            v-model:value="formState.description"
-            placeholder="Mahsulot haqida o'zbekcha ma'lumot kiriting"
-            :rows="4"
-            size="large"
-          />
+        <a-form-item label="Ta'rif (O'zbekcha)" name="description" has-feedback>
+          <a-textarea v-model:value="formState.description" placeholder="Mahsulot haqida o'zbekcha ma'lumot kiriting"
+            :rows="4" size="large" />
         </a-form-item>
 
         <!-- Description (Russian) -->
-        <a-form-item
-          label="Ta'rif (Ruscha)"
-          name="descriptionRu"
-          has-feedback
-        >
-          <a-textarea
-            v-model:value="formState.descriptionRu"
-            placeholder="Введите описание продукта"
-            :rows="4"
-            size="large"
-          />
+        <a-form-item label="Ta'rif (Ruscha)" name="descriptionRu" has-feedback>
+          <a-textarea v-model:value="formState.descriptionRu" placeholder="Введите описание продукта" :rows="4"
+            size="large" />
         </a-form-item>
 
         <!-- Price, Discount Price, and Stock in one row -->
         <a-row :gutter="16">
           <a-col :xs="24" :sm="8">
-            <a-form-item
-              label="Oddiy Narxi (so'm)"
-              name="price"
-              has-feedback
-            >
-              <a-input-number
-                v-model:value="formState.price"
-                placeholder="0.00"
-                :min="0"
-                :step="0.01"
-                :precision="2"
-                size="large"
-                style="width: 100%"
-              />
+            <a-form-item label="Oddiy Narxi (so'm)" name="price" has-feedback>
+              <a-input-number v-model:value="formState.price" placeholder="0.00" :min="0" :step="0.01" :precision="2"
+                size="large" style="width: 100%" />
             </a-form-item>
           </a-col>
 
           <a-col :xs="24" :sm="8">
-            <a-form-item
-              label="Chegirmadagi Narxi (so'm)"
-              name="discountPrice"
-              has-feedback
-            >
-              <a-input-number
-                v-model:value="formState.discountPrice"
-                placeholder="0.00"
-                :min="0"
-                :step="0.01"
-                :precision="2"
-                size="large"
-                style="width: 100%"
-              />
+            <a-form-item label="Chegirmadagi Narxi (so'm)" name="discountPrice" has-feedback>
+              <a-input-number v-model:value="formState.discountPrice" placeholder="0.00" :min="0" :step="0.01"
+                :precision="2" size="large" style="width: 100%" />
             </a-form-item>
           </a-col>
 
           <a-col :xs="24" :sm="8">
-            <a-form-item
-              label="Omborda Soni"
-              name="stock"
-              has-feedback
-            >
-              <a-input-number
-                v-model:value="formState.stock"
-                placeholder="0"
-                :min="0"
-                :step="1"
-                size="large"
-                style="width: 100%"
-              />
+            <a-form-item label="Omborda Soni" name="stock" has-feedback>
+              <a-input-number v-model:value="formState.stock" placeholder="0" :min="0" :step="1" size="large"
+                style="width: 100%" />
             </a-form-item>
           </a-col>
         </a-row>
 
         <!-- Discount Percentage Display -->
-        <a-alert
-          v-if="discountPercentage > 0"
-          :message="`Chegirma: ${discountPercentage}%`"
-          type="success"
-          show-icon
-          style="margin-bottom: 24px"
-        />
+        <a-alert v-if="discountPercentage > 0" :message="`Chegirma: ${discountPercentage}%`" type="success" show-icon
+          style="margin-bottom: 24px" />
 
         <!-- Stock Warning -->
-        <a-alert
-          v-if="formState.stock !== null && formState.stock < 5"
+        <a-alert v-if="formState.stock !== null && formState.stock < 5"
           :message="formState.stock === 0 ? 'Diqqat! Tovar tugagan' : `Diqqat! Omborda kam qoldi (${formState.stock} dona)`"
-          :type="formState.stock === 0 ? 'error' : 'warning'"
-          show-icon
-          style="margin-bottom: 24px"
-        />
+          :type="formState.stock === 0 ? 'error' : 'warning'" show-icon style="margin-bottom: 24px" />
 
         <!-- Product Link -->
-        <a-form-item
-          label="Mahsulot Havolasi"
-          name="link"
-          has-feedback
-        >
-          <a-input
-            v-model:value="formState.link"
-            placeholder="https://example.com/product/..."
-            size="large"
-          />
+        <a-form-item label="Mahsulot Havolasi" name="link" has-feedback>
+          <a-input v-model:value="formState.link" placeholder="https://example.com/product/..." size="large" />
         </a-form-item>
 
         <!-- Main Product Image Upload -->
-        <a-form-item
-          label="Asosiy Mahsulot Rasmi"
-          name="mainImage"
-        >
-          <a-upload
-            v-model:file-list="mainImageFile"
-            name="mainImage"
-            list-type="picture-card"
-            class="product-image-uploader"
-            :before-upload="beforeUpload"
-            :max-count="1"
-            @change="handleMainImageChange"
-            @preview="handlePreview"
-          >
+        <a-form-item label="Asosiy Mahsulot Rasmi" name="mainImage">
+          <a-upload v-model:file-list="mainImageFile" name="mainImage" list-type="picture-card"
+            class="product-image-uploader" :before-upload="beforeUpload" :max-count="1" @change="handleMainImageChange"
+            @preview="handlePreview">
             <div v-if="mainImageFile.length < 1">
               <PlusOutlined />
               <div style="margin-top: 8px">Asosiy rasm</div>
@@ -199,21 +89,10 @@
         </a-form-item>
 
         <!-- Additional Images Upload -->
-        <a-form-item
-          label="Qo'shimcha Rasmlar (Maksimal 5 ta)"
-          name="additionalImages"
-        >
-          <a-upload
-            v-model:file-list="additionalImageFiles"
-            name="additionalImages"
-            list-type="picture-card"
-            class="product-image-uploader"
-            :before-upload="beforeUpload"
-            :max-count="5"
-            multiple
-            @change="handleAdditionalImagesChange"
-            @preview="handlePreview"
-          >
+        <a-form-item label="Qo'shimcha Rasmlar (Maksimal 5 ta)" name="additionalImages">
+          <a-upload v-model:file-list="additionalImageFiles" name="additionalImages" list-type="picture-card"
+            class="product-image-uploader" :before-upload="beforeUpload" :max-count="5" multiple
+            @change="handleAdditionalImagesChange" @preview="handlePreview">
             <div v-if="additionalImageFiles.length < 5">
               <PlusOutlined />
               <div style="margin-top: 8px">Rasm yuklash</div>
@@ -249,17 +128,9 @@
       </a-form>
 
       <!-- Upload Progress -->
-      <a-modal
-        :open="uploadProgress.visible"
-        title="Rasmlar yuklanmoqda..."
-        :footer="null"
-        :closable="false"
-        :maskClosable="false"
-      >
-        <a-progress 
-          :percent="uploadProgress.percent" 
-          :status="uploadProgress.status"
-        />
+      <a-modal :open="uploadProgress.visible" title="Rasmlar yuklanmoqda..." :footer="null" :closable="false"
+        :maskClosable="false">
+        <a-progress :percent="uploadProgress.percent" :status="uploadProgress.status" />
         <p style="margin-top: 16px; text-align: center">
           {{ uploadProgress.current }} / {{ uploadProgress.total }} rasm yuklandi
         </p>
@@ -269,10 +140,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { message } from 'ant-design-vue';
 import { PlusOutlined, SaveOutlined, ClearOutlined } from '@ant-design/icons-vue';
 import { supabase } from '@/Supabase/supabase';
+import { imagekit } from "@/Utils/imagekit";
 
 // Kategoriyalar ro'yxati
 const categories = [
@@ -351,7 +223,7 @@ const rules = {
     { type: 'number', min: 0.01, message: 'Narx 0 dan katta bo\'lishi kerak', trigger: 'blur' }
   ],
   discountPrice: [
-    { 
+    {
       validator: (rule, value) => {
         if (value !== null && value !== undefined && value !== '') {
           if (value < 0) {
@@ -372,14 +244,14 @@ const rules = {
   ],
   link: [
     { required: true, message: 'Mahsulot havolasini kiriting', trigger: 'blur' },
-    { 
-      type: 'url', 
-      message: 'To\'g\'ri URL kiriting (masalan: https://example.com)', 
-      trigger: 'blur' 
+    {
+      type: 'url',
+      message: 'To\'g\'ri URL kiriting (masalan: https://example.com)',
+      trigger: 'blur'
     }
   ],
   mainImage: [
-    { 
+    {
       validator: (rule, value) => {
         if (mainImageFile.value.length === 0) {
           return Promise.reject('Asosiy mahsulot rasmini yuklang');
@@ -411,13 +283,13 @@ const beforeUpload = (file) => {
     message.error('Faqat JPG/PNG/GIF formatidagi fayllarni yuklash mumkin!');
     return false;
   }
-  
+
   const isLt5M = file.size / 1024 / 1024 < 5;
   if (!isLt5M) {
     message.error('Rasm hajmi 5MB dan kichik bo\'lishi kerak!');
     return false;
   }
-  
+
   return false;
 };
 
@@ -456,24 +328,76 @@ const getBase64 = (file) => {
   });
 };
 
-// Upload single image to Supabase
-const uploadImage = async (file, folder = 'products') => {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
 
-  const { data, error } = await supabase.storage
-    .from('images')
-    .upload(fileName, file);
+// **ImageKit ga rasm yuklash funksiyasi**
+const uploadImageToImageKit = async (file, folder = 'products', productId = null) => {
+  try {
+    // 1. Authentication endpoint'dan token olish
+    const authEndpoint = import.meta.env.VITE_IMAGEKIT_AUTH_ENDPOINT;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY;
 
-  if (error) {
-    throw new Error('Rasmni yuklashda xatolik: ' + error.message);
+    const authResponse = await fetch(authEndpoint, {
+      method: 'GET',
+      headers: {
+        'apikey': supabaseAnonKey,
+        'Authorization': `Bearer ${supabaseAnonKey}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    if (!authResponse.ok) {
+      const errorData = await authResponse.json();
+      throw new Error(`Auth xatolik: ${authResponse.status} - ${JSON.stringify(errorData)}`);
+    }
+
+    const authData = await authResponse.json();
+
+    if (!authData.token || !authData.signature || !authData.expire) {
+      throw new Error('Auth data noto\'g\'ri: ' + JSON.stringify(authData));
+    }
+
+    // 2. File'ni base64'ga o'girish
+    const fileBase64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const base64String = reader.result.split(',')[1];
+        resolve(base64String);
+      };
+      reader.onerror = (error) => reject(error);
+    });
+
+    // 3. Fayl nomini yaratish
+    const fileExt = file.name.split('.').pop();
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(7);
+    const fileName = `${timestamp}_${randomStr}.${fileExt}`;
+
+    // 4. Papka yo'lini yaratish
+    let folderPath = `images/${folder}`;
+    if (productId) {
+      folderPath = `images/${folder}/${productId}`;
+    }
+
+    // 5. ImageKit SDK orqali yuklash
+    const uploadResult = await imagekit.upload({
+      file: fileBase64,
+      fileName: fileName,
+      folder: folderPath,
+      useUniqueFileName: false,
+      tags: ['product'],
+      token: authData.token,
+      signature: authData.signature,
+      expire: authData.expire
+    });
+
+    console.log('✅ Rasm yuklandi:', uploadResult.url);
+    return uploadResult.url;
+
+  } catch (error) {
+    console.error('❌ ImageKit xatolik:', error);
+    throw new Error('Rasmni yuklashda xatolik: ' + (error.message || JSON.stringify(error)));
   }
-
-  const { data: { publicUrl } } = supabase.storage
-    .from('images')
-    .getPublicUrl(fileName);
-
-  return publicUrl;
 };
 
 // Form submission
@@ -489,18 +413,9 @@ const onFinish = async (values) => {
     uploadProgress.percent = 0;
     uploadProgress.status = 'active';
 
-    // Upload main image
-    let mainImageUrl = null;
-    if (formState.mainImage) {
-      mainImageUrl = await uploadImage(formState.mainImage);
-      uploadProgress.current++;
-      uploadProgress.percent = Math.round((uploadProgress.current / uploadProgress.total) * 100);
-    }
-
-    // Find selected category
+    // 1. Avval product ma'lumotlarini saqlash (rasm URLlarsiz)
     const selectedCategory = categories.find(cat => cat.uz === formState.category);
 
-    // Insert product data
     const productData = {
       category_uz: selectedCategory.uz,
       category_ru: selectedCategory.ru,
@@ -512,7 +427,7 @@ const onFinish = async (values) => {
       discount_price: values.discountPrice || null,
       stock: values.stock,
       link: values.link,
-      main_image: mainImageUrl
+      main_image: null // Hozircha null
     };
 
     const { data: productInserted, error: productError } = await supabase
@@ -525,15 +440,33 @@ const onFinish = async (values) => {
       throw new Error('Ma\'lumotlarni saqlashda xatolik: ' + productError.message);
     }
 
-    // Upload additional images
+    const productId = productInserted.id;
+
+    // 2. Asosiy rasmni ImageKit ga yuklash
+    let mainImageUrl = null;
+    if (formState.mainImage) {
+      mainImageUrl = await uploadImageToImageKit(formState.mainImage, 'products', productId);
+      uploadProgress.current++;
+      uploadProgress.percent = Math.round((uploadProgress.current / uploadProgress.total) * 100);
+
+      // Asosiy rasm URL ni update qilish
+      const { error: updateError } = await supabase
+        .from('products')
+        .update({ main_image: mainImageUrl })
+        .eq('id', productId);
+
+      if (updateError) {
+        console.error('Asosiy rasmni yangilashda xatolik:', updateError);
+      }
+    }
+
+    // 3. Qo'shimcha rasmlarni ImageKit ga yuklash
     if (formState.additionalImages.length > 0) {
-      const productId = productInserted.id;
-      
       for (let i = 0; i < formState.additionalImages.length; i++) {
         const imageFile = formState.additionalImages[i];
-        const imageUrl = await uploadImage(imageFile, `products/${productId}`);
-        
-        // Insert into product_images table
+        const imageUrl = await uploadImageToImageKit(imageFile, 'products', productId);
+
+        // product_images jadvaliga saqlash
         const { error: imageError } = await supabase
           .from('product_images')
           .insert({
@@ -552,7 +485,7 @@ const onFinish = async (values) => {
     }
 
     uploadProgress.status = 'success';
-    
+
     setTimeout(() => {
       uploadProgress.visible = false;
       message.success('Mahsulot muvaffaqiyatli qo\'shildi!');
@@ -563,6 +496,7 @@ const onFinish = async (values) => {
     uploadProgress.status = 'exception';
     uploadProgress.visible = false;
     message.error(error.message || 'Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
+    console.error('Form submission error:', error);
   } finally {
     loading.value = false;
   }
@@ -582,6 +516,26 @@ const handleReset = () => {
   formState.stock = 0;
   message.info('Forma tozalandi');
 };
+
+onMounted(() => {
+  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY
+
+  fetch(import.meta.env.VITE_IMAGEKIT_AUTH_ENDPOINT, {
+    headers: {
+      'apikey': supabaseAnonKey,
+      'Authorization': `Bearer ${supabaseAnonKey}`
+    }
+  })
+    .then(r => r.json())
+    .then(data => {
+      console.log('✅ Full Response:', data);
+      console.log('📏 Token length:', data.token.length);
+      console.log('📏 Signature length:', data.signature.length);
+      console.log('📅 Expire:', data.expire);
+      console.log('🔢 Expire type:', typeof data.expire);
+    })
+    .catch(err => console.error('❌ Error:', err));
+})
 </script>
 
 <style scoped>

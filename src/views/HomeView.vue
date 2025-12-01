@@ -5,19 +5,10 @@
       <div style="margin-bottom: 16px;">
         <a-space>
           <span style="font-weight: 500;">Kategoriya bo'yicha filter:</span>
-          <a-select
-            v-model:value="selectedCategory"
-            placeholder="Barcha kategoriyalar"
-            style="width: 250px;"
-            @change="handleCategoryChange"
-            allow-clear
-          >
+          <a-select v-model:value="selectedCategory" placeholder="Barcha kategoriyalar" style="width: 250px;"
+            @change="handleCategoryChange" allow-clear>
             <a-select-option value="">Barchasi</a-select-option>
-            <a-select-option 
-              v-for="cat in categories" 
-              :key="cat.uz" 
-              :value="cat.uz"
-            >
+            <a-select-option v-for="cat in categories" :key="cat.uz" :value="cat.uz">
               {{ cat.uz }} / {{ cat.ru }}
             </a-select-option>
           </a-select>
@@ -30,22 +21,11 @@
         </a-space>
       </div>
 
-      <a-table 
-        :columns="columns" 
-        :data-source="filteredProducts" 
-        :loading="loading"
-        :pagination="{ pageSize: 10 }"
-        row-key="id"
-        :scroll="{ x: 1200 }"
-      >
+      <a-table :columns="columns" :data-source="filteredProducts" :loading="loading" :pagination="{ pageSize: 10 }"
+        row-key="id" :scroll="{ x: 1200 }">
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'image'">
-            <a-image
-              v-if="record.main_image"
-              :width="60"
-              :src="record.main_image"
-              :preview="true"
-            />
+            <a-image v-if="record.main_image" :width="60" :src="record.main_image" :preview="true" />
             <span v-else>-</span>
           </template>
 
@@ -92,20 +72,12 @@
 
           <template v-if="column.key === 'action'">
             <a-space>
-              <a-button 
-                type="primary" 
-                size="small"
-                @click="handleEdit(record)"
-              >
+              <a-button type="primary" size="small" @click="handleEdit(record)">
                 <EditOutlined /> Tahrirlash
               </a-button>
-              
-              <a-popconfirm
-                title="Haqiqatan ham bu mahsulotni o'chirmoqchimisiz?"
-                ok-text="Ha"
-                cancel-text="Yo'q"
-                @confirm="handleDelete(record.id)"
-              >
+
+              <a-popconfirm title="Haqiqatan ham bu mahsulotni o'chirmoqchimisiz?" ok-text="Ha" cancel-text="Yo'q"
+                @confirm="handleDelete(record.id)">
                 <a-button type="primary" danger size="small">
                   <DeleteOutlined /> O'chirish
                 </a-button>
@@ -117,32 +89,12 @@
     </a-card>
 
     <!-- Edit Modal -->
-    <a-modal
-      v-model:open="editModalVisible"
-      title="Mahsulotni tahrirlash"
-      :confirm-loading="modalLoading"
-      @ok="handleUpdate"
-      @cancel="handleModalCancel"
-      width="900px"
-      ok-text="Saqlash"
-      cancel-text="Bekor qilish"
-    >
-      <a-form
-        :model="editForm"
-        :label-col="{ span: 6 }"
-        :wrapper-col="{ span: 18 }"
-      >
+    <a-modal v-model:open="editModalVisible" title="Mahsulotni tahrirlash" :confirm-loading="modalLoading"
+      @ok="handleUpdate" @cancel="handleModalCancel" width="900px" ok-text="Saqlash" cancel-text="Bekor qilish">
+      <a-form :model="editForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
         <a-form-item label="Kategoriya">
-          <a-select
-            v-model:value="editForm.category_uz"
-            placeholder="Kategoriyani tanlang"
-            style="width: 100%;"
-          >
-            <a-select-option 
-              v-for="cat in categories" 
-              :key="cat.uz" 
-              :value="cat.uz"
-            >
+          <a-select v-model:value="editForm.category_uz" placeholder="Kategoriyani tanlang" style="width: 100%;">
+            <a-select-option v-for="cat in categories" :key="cat.uz" :value="cat.uz">
               {{ cat.uz }} / {{ cat.ru }}
             </a-select-option>
           </a-select>
@@ -167,43 +119,26 @@
         <a-row :gutter="16">
           <a-col :span="12">
             <a-form-item label="Narxi" :label-col="{ span: 12 }" :wrapper-col="{ span: 12 }">
-              <a-input-number 
-                v-model:value="editForm.price" 
-                :min="0"
-                style="width: 100%"
+              <a-input-number v-model:value="editForm.price" :min="0" style="width: 100%"
                 :formatter="value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')"
-                :parser="value => value.replace(/\s/g, '')"
-              />
+                :parser="value => value.replace(/\s/g, '')" />
             </a-form-item>
           </a-col>
 
           <a-col :span="12">
             <a-form-item label="Chegirmali" :label-col="{ span: 12 }" :wrapper-col="{ span: 12 }">
-              <a-input-number 
-                v-model:value="editForm.discount_price" 
-                :min="0"
-                style="width: 100%"
+              <a-input-number v-model:value="editForm.discount_price" :min="0" style="width: 100%"
                 :formatter="value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ' ')"
-                :parser="value => value.replace(/\s/g, '')"
-              />
+                :parser="value => value.replace(/\s/g, '')" />
             </a-form-item>
           </a-col>
         </a-row>
 
         <a-form-item label="Omborda soni">
-          <a-input-number 
-            v-model:value="editForm.stock" 
-            :min="0"
-            :step="1"
-            style="width: 100%"
-          />
-          <a-alert
-            v-if="editForm.stock !== null && editForm.stock < 5"
+          <a-input-number v-model:value="editForm.stock" :min="0" :step="1" style="width: 100%" />
+          <a-alert v-if="editForm.stock !== null && editForm.stock < 5"
             :message="editForm.stock === 0 ? 'Tovar tugagan!' : `Omborda kam qoldi (${editForm.stock} dona)`"
-            :type="editForm.stock === 0 ? 'error' : 'warning'"
-            show-icon
-            style="margin-top: 8px"
-          />
+            :type="editForm.stock === 0 ? 'error' : 'warning'" show-icon style="margin-top: 8px" />
         </a-form-item>
 
         <a-form-item label="Havola">
@@ -229,7 +164,7 @@
               </a-tag>
             </div>
           </div>
-          
+
           <!-- Eski rasm -->
           <div v-else-if="editForm.main_image" style="margin-bottom: 10px;">
             <div style="position: relative; display: inline-block;">
@@ -240,22 +175,14 @@
             </div>
           </div>
 
-          <a-upload
-            :before-upload="(file) => handleBeforeUpload(file, 'main')"
-            :show-upload-list="false"
-            accept="image/*"
-          >
+          <a-upload :before-upload="(file) => handleBeforeUpload(file, 'main')" :show-upload-list="false"
+            accept="image/*">
             <a-button>
               <UploadOutlined /> {{ newMainImagePreview ? 'Boshqa rasm tanlash' : 'Yangi rasm yuklash' }}
             </a-button>
           </a-upload>
-          
-          <a-button 
-            v-if="newMainImagePreview" 
-            danger 
-            style="margin-left: 10px;"
-            @click="clearNewMainImage"
-          >
+
+          <a-button v-if="newMainImagePreview" danger style="margin-left: 10px;" @click="clearNewMainImage">
             Bekor qilish
           </a-button>
         </a-form-item>
@@ -267,18 +194,11 @@
             <div v-if="existingAdditionalImages.length > 0" style="margin-bottom: 16px;">
               <div style="margin-bottom: 8px; font-weight: 500;">Mavjud rasmlar:</div>
               <a-space :size="8" wrap>
-                <div 
-                  v-for="img in existingAdditionalImages" 
-                  :key="img.id"
-                  style="position: relative; display: inline-block;"
-                >
+                <div v-for="img in existingAdditionalImages" :key="img.id"
+                  style="position: relative; display: inline-block;">
                   <a-image :width="100" :src="img.image_url" />
-                  <a-button 
-                    danger 
-                    size="small"
-                    style="position: absolute; top: 2px; right: 2px;"
-                    @click="removeExistingImage(img.id)"
-                  >
+                  <a-button danger size="small" style="position: absolute; top: 2px; right: 2px;"
+                    @click="removeExistingImage(img.id)">
                     <DeleteOutlined />
                   </a-button>
                 </div>
@@ -289,21 +209,14 @@
             <div v-if="newAdditionalImagesPreviews.length > 0" style="margin-bottom: 16px;">
               <div style="margin-bottom: 8px; font-weight: 500;">Yangi rasmlar:</div>
               <a-space :size="8" wrap>
-                <div 
-                  v-for="(preview, index) in newAdditionalImagesPreviews" 
-                  :key="index"
-                  style="position: relative; display: inline-block;"
-                >
+                <div v-for="(preview, index) in newAdditionalImagesPreviews" :key="index"
+                  style="position: relative; display: inline-block;">
                   <a-image :width="100" :src="preview" />
                   <a-tag color="success" style="position: absolute; top: 2px; left: 2px; font-size: 10px;">
                     Yangi
                   </a-tag>
-                  <a-button 
-                    danger 
-                    size="small"
-                    style="position: absolute; top: 2px; right: 2px;"
-                    @click="removeNewImage(index)"
-                  >
+                  <a-button danger size="small" style="position: absolute; top: 2px; right: 2px;"
+                    @click="removeNewImage(index)">
                     <DeleteOutlined />
                   </a-button>
                 </div>
@@ -311,18 +224,13 @@
             </div>
 
             <!-- Upload button -->
-            <a-upload
-              :before-upload="(file) => handleBeforeUpload(file, 'additional')"
-              :show-upload-list="false"
-              accept="image/*"
-              multiple
-              :disabled="totalImagesCount >= 5"
-            >
+            <a-upload :before-upload="(file) => handleBeforeUpload(file, 'additional')" :show-upload-list="false"
+              accept="image/*" multiple :disabled="totalImagesCount >= 5">
               <a-button :disabled="totalImagesCount >= 5">
                 <PlusOutlined /> Rasm qo'shish ({{ totalImagesCount }}/5)
               </a-button>
             </a-upload>
-            
+
             <div style="margin-top: 8px;">
               <a-typography-text type="secondary" style="font-size: 12px;">
                 Maksimal 5 ta qo'shimcha rasm yuklash mumkin
@@ -334,13 +242,8 @@
     </a-modal>
 
     <!-- Delete Progress Modal -->
-    <a-modal
-      :open="deleteProgress.visible"
-      title="O'chirilmoqda..."
-      :footer="null"
-      :closable="false"
-      :maskClosable="false"
-    >
+    <a-modal :open="deleteProgress.visible" title="O'chirilmoqda..." :footer="null" :closable="false"
+      :maskClosable="false">
       <a-spin tip="Mahsulot va rasmlar o'chirilmoqda..." />
     </a-modal>
   </div>
@@ -349,11 +252,11 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue';
 import { message } from 'ant-design-vue';
-import { 
-  EditOutlined, 
-  DeleteOutlined, 
-  LinkOutlined, 
-  UploadOutlined, 
+import {
+  EditOutlined,
+  DeleteOutlined,
+  LinkOutlined,
+  UploadOutlined,
   EyeOutlined,
   InboxOutlined,
   CloseCircleOutlined,
@@ -468,7 +371,7 @@ const fetchProducts = async () => {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    
+
     products.value = data;
     filteredProducts.value = data;
   } catch (error) {
@@ -519,11 +422,11 @@ const fetchAdditionalImages = async (productId) => {
 const handleEdit = async (record) => {
   currentProductId.value = record.id;
   oldMainImagePath.value = record.main_image;
-  
+
   // Fetch additional images
   const additionalImages = await fetchAdditionalImages(record.id);
   existingAdditionalImages.value = additionalImages;
-  
+
   editForm.value = {
     category_uz: record.category_uz,
     category_ru: record.category_ru,
@@ -538,14 +441,14 @@ const handleEdit = async (record) => {
     main_image: record.main_image,
     seen: record.seen || 0
   };
-  
+
   // Reset new images
   newMainImage.value = null;
   newMainImagePreview.value = null;
   newAdditionalImages.value = [];
   newAdditionalImagesPreviews.value = [];
   imagesToDelete.value = [];
-  
+
   editModalVisible.value = true;
 };
 
@@ -556,7 +459,7 @@ const handleBeforeUpload = (file, type) => {
     message.error('Faqat rasm fayllarini yuklash mumkin!');
     return false;
   }
-  
+
   const isLt5M = file.size / 1024 / 1024 < 5;
   if (!isLt5M) {
     message.error('Rasm hajmi 5MB dan oshmasligi kerak!');
@@ -576,7 +479,7 @@ const handleBeforeUpload = (file, type) => {
       message.warning('Maksimal 5 ta qo\'shimcha rasm yuklash mumkin!');
       return false;
     }
-    
+
     newAdditionalImages.value.push(file);
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -584,7 +487,7 @@ const handleBeforeUpload = (file, type) => {
     };
     reader.readAsDataURL(file);
   }
-  
+
   return false;
 };
 
@@ -631,13 +534,13 @@ const uploadImage = async (file, folder = 'products') => {
 // Delete image from storage
 const deleteImageFromStorage = async (imageUrl) => {
   if (!imageUrl) return;
-  
+
   try {
     const urlParts = imageUrl.split('/');
     const fileName = urlParts[urlParts.length - 1];
     const folder = urlParts[urlParts.length - 2];
     const filePath = folder ? `${folder}/${fileName}` : fileName;
-    
+
     await supabase.storage.from('images').remove([filePath]);
   } catch (err) {
     console.error('Rasmni o\'chirishda xatolik:', err);
@@ -653,7 +556,7 @@ const handleUpdate = async () => {
     // Upload new main image if selected
     if (newMainImage.value) {
       mainImageUrl = await uploadImage(newMainImage.value);
-      
+
       // Delete old main image
       if (oldMainImagePath.value) {
         await deleteImageFromStorage(oldMainImagePath.value);
@@ -662,7 +565,7 @@ const handleUpdate = async () => {
 
     // Prepare update data
     const selectedCat = categories.find(cat => cat.uz === editForm.value.category_uz);
-    
+
     const updateData = {
       category_uz: selectedCat?.uz,
       category_ru: selectedCat?.ru,
@@ -686,13 +589,46 @@ const handleUpdate = async () => {
     if (error) throw error;
 
     // Delete marked images
+   // Delete marked images
     for (const imageId of imagesToDelete.value) {
-      const imageToDelete = existingAdditionalImages.value.find(img => img.id === imageId) 
-        || await supabase.from('product_images').select('*').eq('id', imageId).single().then(res => res.data);
-      
-      if (imageToDelete) {
-        await deleteImageFromStorage(imageToDelete.image_url);
-        await supabase.from('product_images').delete().eq('id', imageId);
+      try {
+        // Fetch image data from database
+        const { data: imageToDelete, error: fetchError } = await supabase
+          .from('product_images')
+          .select('*')
+          .eq('id', imageId)
+          .single();
+        
+        if (fetchError) {
+          console.error('Rasmni topishda xatolik:', fetchError);
+          continue;
+        }
+        
+        if (imageToDelete && imageToDelete.image_url) {
+          // Delete from storage first
+          try {
+            await deleteImageFromStorage(imageToDelete.image_url);
+            console.log('Rasm storage dan o\'chirildi:', imageToDelete.image_url);
+          } catch (storageError) {
+            console.error('Storage\'dan o\'chirishda xatolik:', storageError);
+            // Continue even if storage delete fails
+          }
+          
+          // Delete from database
+          const { error: deleteError } = await supabase
+            .from('product_images')
+            .delete()
+            .eq('id', imageId);
+          
+          if (deleteError) {
+            console.error('Rasmni bazadan o\'chirishda xatolik:', deleteError);
+          } else {
+            console.log('Rasm bazadan o\'chirildi:', imageId);
+          }
+        }
+      } catch (err) {
+        console.error('Rasmni o\'chirishda umumiy xatolik:', err);
+        // Continue with next image
       }
     }
 
@@ -700,9 +636,9 @@ const handleUpdate = async () => {
     for (let i = 0; i < newAdditionalImages.value.length; i++) {
       const imageFile = newAdditionalImages.value[i];
       const imageUrl = await uploadImage(imageFile, `products/${currentProductId.value}`);
-      
+
       const currentOrder = existingAdditionalImages.value.length + i + 1;
-      
+
       await supabase
         .from('product_images')
         .insert({
@@ -738,10 +674,10 @@ const handleModalCancel = () => {
 // Handle delete
 const handleDelete = async (id) => {
   deleteProgress.visible = true;
-  
+
   try {
     const product = products.value.find(p => p.id === id);
-    
+
     // Delete main image
     if (product && product.main_image) {
       await deleteImageFromStorage(product.main_image);
