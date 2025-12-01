@@ -140,11 +140,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { message } from 'ant-design-vue';
 import { PlusOutlined, SaveOutlined, ClearOutlined } from '@ant-design/icons-vue';
 import { supabase } from '@/Supabase/supabase';
-import { imagekit } from "@/Utils/imagekit";
 
 // Kategoriyalar ro'yxati
 const categories = [
@@ -328,81 +327,129 @@ const getBase64 = (file) => {
   });
 };
 
-
-// **ImageKit ga rasm yuklash funksiyasi**
-const uploadImageToImageKit = async (file, folder = 'products', productId = null) => {
+/**
+ * Supabase Storage ga rasm yuklash funksiyasi
+ * @param {File} file - Yuklanadigan fayl
+ * @param {string} productId - Mahsulot ID si
+ * @param {string} imageType - 'main' yoki 'additional'
+ * @param {number} index - Qo'shimcha rasm uchun index (0, 1, 2...)
+ * @returns {Promise<string>} - Rasm URL manzili
+ */
+const uploadImageToSupabase = async (file, productId, imageType = 'main', index = 0) => {
   try {
-    // 1. Authentication endpoint'dan token olish
-    const authEndpoint = import.meta.env.VITE_IMAGEKIT_AUTH_ENDPOINT;
-    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY;
-
-    const authResponse = await fetch(authEndpoint, {
-      method: 'GET',
-      headers: {
-        'apikey': supabaseAnonKey,
-        'Authorization': `Bearer ${supabaseAnonKey}`,
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!authResponse.ok) {
-      const errorData = await authResponse.json();
-      throw new Error(`Auth xatolik: ${authResponse.status} - ${JSON.stringify(errorData)}`);
-    }
-
-    const authData = await authResponse.json();
-
-    if (!authData.token || !authData.signature || !authData.expire) {
-      throw new Error('Auth data noto\'g\'ri: ' + JSON.stringify(authData));
-    }
-
-    // 2. File'ni base64'ga o'girish
-    const fileBase64 = await new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const base64String = reader.result.split(',')[1];
-        resolve(base64String);
-      };
-      reader.onerror = (error) => reject(error);
-    });
-
-    // 3. Fayl nomini yaratish
+    // Fayl nomini yaratish
     const fileExt = file.name.split('.').pop();
     const timestamp = Date.now();
-    const randomStr = Math.random().toString(36).substring(7);
-    const fileName = `${timestamp}_${randomStr}.${fileExt}`;
+    const fileName = imageType === 'main' 
+      ? `main_${timestamp}.${fileExt}` 
+      : `additional_${index + 1}_${timestamp}.${fileExt}`;
 
-    // 4. Papka yo'lini yaratish
-    let folderPath = `images/${folder}`;
-    if (productId) {
-      folderPath = `images/${folder}/${productId}`;
+    // Storage path: images/{productId}/{fileName}
+    const filePath = `${productId}/${fileName}`;
+
+    // Supabase Storage ga yuklash
+    const { data, error } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) {
+      throw new Error(`Rasmni yuklashda xatolik: ${error.message}`);
     }
 
-    // 5. ImageKit SDK orqali yuklash
-    const uploadResult = await imagekit.upload({
-      file: fileBase64,
-      fileName: fileName,
-      folder: folderPath,
-      useUniqueFileName: false,
-      tags: ['product'],
-      token: authData.token,
-      signature: authData.signature,
-      expire: authData.expire
-    });
+    // Public URL olish
+    const { data: publicUrlData } = supabase.storage
+      .from(`product-images`)
+      .getPublicUrl(filePath);
 
-    console.log('✅ Rasm yuklandi:', uploadResult.url);
-    return uploadResult.url;
+    console.log(`✅ ${imageType} rasm yuklandi:`, publicUrlData.publicUrl);
+    return publicUrlData.publicUrl;
 
   } catch (error) {
-    console.error('❌ ImageKit xatolik:', error);
-    throw new Error('Rasmni yuklashda xatolik: ' + (error.message || JSON.stringify(error)));
+    console.error('❌ Supabase Storage xatolik:', error);
+    throw error;
+  }
+};
+
+/**
+ * Mahsulotning barcha rasmlarini o'chirish
+ * @param {string} productId - Mahsulot ID si
+ */
+const deleteAllProductImages = async (productId) => {
+  try {
+    const folderPath = `images/products/${productId}`;
+    
+    // Papkadagi barcha fayllarni ro'yxatga olish
+    const { data: filesList, error: listError } = await supabase.storage
+      .from('product-images')
+      .list(folderPath);
+
+    if (listError) {
+      console.error('Fayllar ro\'yxatini olishda xatolik:', listError);
+      return;
+    }
+
+    if (filesList && filesList.length > 0) {
+      // Barcha fayllarni o'chirish
+      const filePaths = filesList.map(file => `${folderPath}/${file.name}`);
+      
+      const { error: deleteError } = await supabase.storage
+        .from('product-images')
+        .remove(filePaths);
+
+      if (deleteError) {
+        console.error('Rasmlarni o\'chirishda xatolik:', deleteError);
+      } else {
+        console.log(`✅ ${filePaths.length} ta rasm o'chirildi`);
+      }
+    }
+  } catch (error) {
+    console.error('❌ Rasmlarni o\'chirishda xatolik:', error);
+  }
+};
+
+/**
+ * Mahsulotni va uning rasmlarini to'liq o'chirish (rollback uchun)
+ * @param {string} productId - Mahsulot ID si
+ */
+const rollbackProduct = async (productId) => {
+  try {
+    // 1. Rasmlarni o'chirish
+    await deleteAllProductImages(productId);
+
+    // 2. product_images jadvalidagi ma'lumotlarni o'chirish
+    const { error: imagesError } = await supabase
+      .from('product_images')
+      .delete()
+      .eq('product_id', productId);
+
+    if (imagesError) {
+      console.error('product_images o\'chirishda xatolik:', imagesError);
+    }
+
+    // 3. products jadvalidagi ma'lumotni o'chirish
+    const { error: productError } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId);
+
+    if (productError) {
+      console.error('Product o\'chirishda xatolik:', productError);
+    } else {
+      console.log('✅ Rollback muvaffaqiyatli bajarildi');
+    }
+
+  } catch (error) {
+    console.error('❌ Rollback xatolik:', error);
   }
 };
 
 // Form submission
 const onFinish = async (values) => {
   loading.value = true;
+  let productId = null;
 
   try {
     // Show upload progress modal
@@ -440,12 +487,13 @@ const onFinish = async (values) => {
       throw new Error('Ma\'lumotlarni saqlashda xatolik: ' + productError.message);
     }
 
-    const productId = productInserted.id;
+    productId = productInserted.id;
+    console.log('✅ Product yaratildi, ID:', productId);
 
-    // 2. Asosiy rasmni ImageKit ga yuklash
+    // 2. Asosiy rasmni Supabase Storage ga yuklash
     let mainImageUrl = null;
     if (formState.mainImage) {
-      mainImageUrl = await uploadImageToImageKit(formState.mainImage, 'products', productId);
+      mainImageUrl = await uploadImageToSupabase(formState.mainImage, productId, 'main');
       uploadProgress.current++;
       uploadProgress.percent = Math.round((uploadProgress.current / uploadProgress.total) * 100);
 
@@ -456,15 +504,15 @@ const onFinish = async (values) => {
         .eq('id', productId);
 
       if (updateError) {
-        console.error('Asosiy rasmni yangilashda xatolik:', updateError);
+        throw new Error('Asosiy rasmni yangilashda xatolik: ' + updateError.message);
       }
     }
 
-    // 3. Qo'shimcha rasmlarni ImageKit ga yuklash
+    // 3. Qo'shimcha rasmlarni Supabase Storage ga yuklash
     if (formState.additionalImages.length > 0) {
       for (let i = 0; i < formState.additionalImages.length; i++) {
         const imageFile = formState.additionalImages[i];
-        const imageUrl = await uploadImageToImageKit(imageFile, 'products', productId);
+        const imageUrl = await uploadImageToSupabase(imageFile, productId, 'additional', i);
 
         // product_images jadvaliga saqlash
         const { error: imageError } = await supabase
@@ -476,7 +524,7 @@ const onFinish = async (values) => {
           });
 
         if (imageError) {
-          console.error('Qo\'shimcha rasmni saqlashda xatolik:', imageError);
+          throw new Error('Qo\'shimcha rasmni saqlashda xatolik: ' + imageError.message);
         }
 
         uploadProgress.current++;
@@ -495,6 +543,13 @@ const onFinish = async (values) => {
   } catch (error) {
     uploadProgress.status = 'exception';
     uploadProgress.visible = false;
+
+    // ROLLBACK: Agar xatolik yuz bersa, yaratilgan ma'lumotlarni o'chirish
+    if (productId) {
+      message.warning('Xatolik yuz berdi. Ma\'lumotlar qaytarilmoqda...');
+      await rollbackProduct(productId);
+    }
+
     message.error(error.message || 'Xatolik yuz berdi. Qaytadan urinib ko\'ring.');
     console.error('Form submission error:', error);
   } finally {
@@ -516,26 +571,6 @@ const handleReset = () => {
   formState.stock = 0;
   message.info('Forma tozalandi');
 };
-
-onMounted(() => {
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_KEY
-
-  fetch(import.meta.env.VITE_IMAGEKIT_AUTH_ENDPOINT, {
-    headers: {
-      'apikey': supabaseAnonKey,
-      'Authorization': `Bearer ${supabaseAnonKey}`
-    }
-  })
-    .then(r => r.json())
-    .then(data => {
-      console.log('✅ Full Response:', data);
-      console.log('📏 Token length:', data.token.length);
-      console.log('📏 Signature length:', data.signature.length);
-      console.log('📅 Expire:', data.expire);
-      console.log('🔢 Expire type:', typeof data.expire);
-    })
-    .catch(err => console.error('❌ Error:', err));
-})
 </script>
 
 <style scoped>

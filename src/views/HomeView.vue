@@ -513,35 +513,96 @@ const removeNewImage = (index) => {
 
 // Upload image to storage
 const uploadImage = async (file, folder = 'products') => {
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${folder}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+  const bucket = 'product-images';
+  const fileExt = (file.name || 'img').split('.').pop();
+  const fileNameOnly = `${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+  // folder may be 'products' or 'products/<productId>'
+  const filePath = `${folder}/${fileNameOnly}`;
 
-  const { error } = await supabase.storage
-    .from('images')
-    .upload(fileName, file);
+  const { error: uploadError } = await supabase.storage
+    .from(bucket)
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: false
+    });
 
-  if (error) {
-    throw new Error('Rasmni yuklashda xatolik: ' + error.message);
+  if (uploadError) {
+    throw new Error('Rasmni yuklashda xatolik: ' + uploadError.message);
   }
 
-  const { data: { publicUrl } } = supabase.storage
-    .from('images')
-    .getPublicUrl(fileName);
+  const { data } = supabase.storage
+    .from(bucket)
+    .getPublicUrl(filePath);
 
-  return publicUrl;
+  return data?.publicUrl || null;
 };
 
+
 // Delete image from storage
-const deleteImageFromStorage = async (imageUrl) => {
-  if (!imageUrl) return;
+const deleteImageFromStorage = async (imageUrlOrPath) => {
+  if (!imageUrlOrPath) return;
 
   try {
-    const urlParts = imageUrl.split('/');
-    const fileName = urlParts[urlParts.length - 1];
-    const folder = urlParts[urlParts.length - 2];
-    const filePath = folder ? `${folder}/${fileName}` : fileName;
+    const defaultBucket = 'product-images';
+    const publicPrefix = '/storage/v1/object/public/';
+    let bucket = defaultBucket;
+    let filePath = null;
 
-    await supabase.storage.from('images').remove([filePath]);
+    // Agar to'liq URL bo'lsa -> pathname dan filePathni ajratib olish
+    try {
+      const url = new URL(imageUrlOrPath);
+      // olib tashla query string va hash
+      const cleanPathname = url.pathname;
+      const idx = cleanPathname.indexOf(publicPrefix);
+
+      if (idx !== -1) {
+        const after = cleanPathname.slice(idx + publicPrefix.length); // "<bucket>/<path...>"
+        const parts = after.split('/').filter(Boolean);
+        bucket = parts.shift();
+        filePath = parts.join('/');
+      } else {
+        // Ba'zi holatlarda public maydon ko'rsatilmasligi mumkin: domain/.../product-images/products/...
+        // So'nggi ikki segmentni emas, bucket nomini qidir
+        const segments = cleanPathname.split('/').filter(Boolean);
+        const bucketIndex = segments.indexOf(defaultBucket);
+        if (bucketIndex !== -1 && segments.length > bucketIndex + 1) {
+          filePath = segments.slice(bucketIndex + 1).join('/');
+        }
+      }
+    } catch (e) {
+      // imageUrlOrPath ehtimol allaqachon filePath: 'products/123/filename.jpg'
+      filePath = imageUrlOrPath;
+    }
+
+    // Agar filePathda host yoki full URL bo'lib qolsa, query/hash ni olib tashla
+    if (filePath && (filePath.startsWith('http://') || filePath.startsWith('https://'))) {
+      try {
+        const u = new URL(filePath);
+        filePath = u.pathname.split('/').slice(1).join('/');
+      } catch (e) { /* ignore */ }
+    }
+
+    // Ba'zan getPublicUrl natijasida filePath boshida '/' bo'lishi mumkin
+    if (filePath && filePath.startsWith('/')) {
+      filePath = filePath.slice(1);
+    }
+
+    if (!filePath) {
+      console.warn('Fayl yo‘li aniqlanmadi:', imageUrlOrPath);
+      return;
+    }
+
+    const { error } = await supabase.storage.from(bucket).remove([filePath]);
+
+    if (error) {
+      // 403: client tarafdan o'chirishga ruxsat yo'q — service_role server endpoint kerak
+      if (error.status === 403) {
+        console.error('Storage remove 403 — brauzer orqali o\'chirishga ruxsat yo\'q. Serverda service_role bilan o\'chiring.');
+      }
+      throw error;
+    }
+
+    console.log('Fayl o‘chirildi:', bucket, filePath);
   } catch (err) {
     console.error('Rasmni o\'chirishda xatolik:', err);
   }
@@ -555,7 +616,7 @@ const handleUpdate = async () => {
 
     // Upload new main image if selected
     if (newMainImage.value) {
-      mainImageUrl = await uploadImage(newMainImage.value);
+      mainImageUrl = await uploadImage(newMainImage.value, `${currentProductId.value}`);
 
       // Delete old main image
       if (oldMainImagePath.value) {
@@ -635,7 +696,7 @@ const handleUpdate = async () => {
     // Upload new additional images
     for (let i = 0; i < newAdditionalImages.value.length; i++) {
       const imageFile = newAdditionalImages.value[i];
-      const imageUrl = await uploadImage(imageFile, `products/${currentProductId.value}`);
+      const imageUrl = await uploadImage(imageFile, `${currentProductId.value}`);
 
       const currentOrder = existingAdditionalImages.value.length + i + 1;
 
@@ -672,7 +733,7 @@ const handleModalCancel = () => {
 };
 
 // Handle delete
-const handleDelete = async (id) => {
+const   handleDelete = async (id) => {
   deleteProgress.visible = true;
 
   try {
