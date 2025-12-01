@@ -343,6 +343,7 @@ const existingAdditionalImages = ref([]);
 const imagesToDelete = ref([]);
 const currentProductId = ref(null);
 const oldMainImagePath = ref(null);
+const slidesImages = ref([])
 
 const deleteProgress = reactive({
   visible: false
@@ -417,6 +418,22 @@ const fetchAdditionalImages = async (productId) => {
     return [];
   }
 };
+
+const fetchSlidesImages = async (productId) => {
+  try {
+    const { data, error } = await supabase
+      .from('product_slides')
+      .select("*")
+      .eq('product_id', productId)
+      .order('display_order', { ascending: true })
+
+    if (error) throw error
+    return data || []
+  } catch (error) {
+    console.lof("Fetch slides images", error)
+    return []
+  }
+}
 
 // Handle edit
 const handleEdit = async (record) => {
@@ -650,7 +667,7 @@ const handleUpdate = async () => {
     if (error) throw error;
 
     // Delete marked images
-   // Delete marked images
+    // Delete marked images
     for (const imageId of imagesToDelete.value) {
       try {
         // Fetch image data from database
@@ -659,12 +676,12 @@ const handleUpdate = async () => {
           .select('*')
           .eq('id', imageId)
           .single();
-        
+
         if (fetchError) {
           console.error('Rasmni topishda xatolik:', fetchError);
           continue;
         }
-        
+
         if (imageToDelete && imageToDelete.image_url) {
           // Delete from storage first
           try {
@@ -674,13 +691,13 @@ const handleUpdate = async () => {
             console.error('Storage\'dan o\'chirishda xatolik:', storageError);
             // Continue even if storage delete fails
           }
-          
+
           // Delete from database
           const { error: deleteError } = await supabase
             .from('product_images')
             .delete()
             .eq('id', imageId);
-          
+
           if (deleteError) {
             console.error('Rasmni bazadan o\'chirishda xatolik:', deleteError);
           } else {
@@ -733,24 +750,27 @@ const handleModalCancel = () => {
 };
 
 // Handle delete
-const   handleDelete = async (id) => {
+const handleDelete = async (id) => {
   deleteProgress.visible = true;
 
   try {
     const product = products.value.find(p => p.id === id);
 
-    // Delete main image
     if (product && product.main_image) {
       await deleteImageFromStorage(product.main_image);
     }
 
-    // Fetch and delete additional images
     const additionalImages = await fetchAdditionalImages(id);
     for (const img of additionalImages) {
       await deleteImageFromStorage(img.image_url);
     }
 
-    // Delete product (CASCADE will delete product_images automatically)
+    const slidesImages = await fetchSlidesImages(id);
+    for (const img of slidesImages) {
+      await deleteImageFromStorage(img.image_url);
+    }
+
+
     const { error } = await supabase
       .from('products')
       .delete()
