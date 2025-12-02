@@ -103,8 +103,8 @@
           </a-typography-text>
         </a-form-item>
 
-        <a-form-item label="Tovaringizni tipini kiriting" name="tovar-type">
-          <a-input placeholder="Rang , O'lcham ..." v-model:value="formState.tovarType" />
+        <a-form-item label="Tovaringizni tipini kiriting" name="tovarType">
+          <a-input placeholder="Rang , O'lcham ..." v-model:value="tovarType" />
         </a-form-item>
 
         <!-- Slide uchun rasmalar  -->
@@ -162,7 +162,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue';
+import { ref, reactive, computed, watch } from 'vue';
 import { message } from 'ant-design-vue';
 import { PlusOutlined, SaveOutlined, ClearOutlined } from '@ant-design/icons-vue';
 import { supabase } from '@/Supabase/supabase';
@@ -183,6 +183,7 @@ const categories = [
   { uz: 'Boshqalar', ru: 'Прочее' }
 ];
 
+
 const formRef = ref();
 const loading = ref(false);
 const mainImageFile = ref([]);
@@ -190,6 +191,7 @@ const additionalImageFiles = ref([]);
 const slidesImageFiles = ref([])
 const previewVisible = ref(false);
 const previewImage = ref('');
+const tovarType = ref('')
 
 // Upload progress state
 const uploadProgress = reactive({
@@ -214,7 +216,6 @@ const formState = reactive({
   mainImage: null,
   additionalImages: [],
   slidesImages: [],
-  tovarType : ''
 });
 
 // Validation rules
@@ -331,6 +332,7 @@ const handleAdditionalImagesChange = ({ fileList: newFileList }) => {
   formState.additionalImages = newFileList.map(file => file.originFileObj);
 };
 
+// caption yuklash 
 const handleSlideImagesChange = ({ fileList: newFileList }) => {
   slidesImageFiles.value = newFileList.map(file => ({
     ...file,
@@ -497,8 +499,8 @@ const onFinish = async (values) => {
       discount_price: values.discountPrice || null,
       stock: values.stock,
       link: values.link,
-      main_image: null , 
-      tovar_type :  values.tovarType 
+      main_image: null,
+      tovar_type: tovarType.value
     };
 
     const { data: productInserted, error: productError } = await supabase
@@ -621,7 +623,7 @@ const handleReset = () => {
   formState.additionalImages = [];
   formState.category = undefined;
   formState.stock = 0;
-  formState.tovarType = ''
+  tovarType.value = ''
   message.info('Forma tozalandi');
 };
 </script>
