@@ -103,6 +103,10 @@
           </a-typography-text>
         </a-form-item>
 
+        <a-form-item label="Tovaringizni tipini kiriting" name="tovar-type">
+          <a-input placeholder="Rang , O'lcham ..." v-model:value="formState.tovarType" />
+        </a-form-item>
+
         <!-- Slide uchun rasmalar  -->
         <a-form-item label="Slide uchun rasmlar" name="slideImages">
           <a-upload v-model:file-list="slidesImageFiles" name="slidesImages" list-type="picture-card"
@@ -210,6 +214,7 @@ const formState = reactive({
   mainImage: null,
   additionalImages: [],
   slidesImages: [],
+  tovarType : ''
 });
 
 // Validation rules
@@ -492,7 +497,8 @@ const onFinish = async (values) => {
       discount_price: values.discountPrice || null,
       stock: values.stock,
       link: values.link,
-      main_image: null // Hozircha null
+      main_image: null , 
+      tovar_type :  values.tovarType 
     };
 
     const { data: productInserted, error: productError } = await supabase
@@ -564,7 +570,7 @@ const onFinish = async (values) => {
           .insert({
             product_id: productId,
             image_url: imageUrl,
-            caption: caption, 
+            caption: caption,
             display_order: i + 1
           });
 
@@ -615,6 +621,7 @@ const handleReset = () => {
   formState.additionalImages = [];
   formState.category = undefined;
   formState.stock = 0;
+  formState.tovarType = ''
   message.info('Forma tozalandi');
 };
 </script>
